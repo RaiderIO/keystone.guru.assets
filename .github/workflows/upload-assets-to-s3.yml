@@ -46,24 +46,24 @@ jobs:
               A|M)
                 if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
                   echo "PUT  $path"
-                  aws s3 cp "$path" "s3://${secrets.S3_BUCKET}/$path" --no-progress
+                  aws s3 cp "$path" "s3://${S3_BUCKET}/$path" --no-progress
                 fi
                 ;;
               D)
                 if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
                   echo "DEL  $path"
-                  aws s3 rm "s3://${secrets.S3_BUCKET}/$path"
+                  aws s3 rm "s3://${S3_BUCKET}/$path"
                 fi
                 ;;
               R*)
                 # Renamed: old path in $path, new path in $newpath
                 if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
                   echo "DEL  $path"
-                  aws s3 rm "s3://${secrets.S3_BUCKET}/$path" || true
+                  aws s3 rm "s3://${S3_BUCKET}/$path" || true
                 fi
                 if [[ "$newpath" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
                   echo "PUT  $newpath"
-                  aws s3 cp "$newpath" "s3://${secrets.S3_BUCKET}/$newpath" --no-progress
+                  aws s3 cp "$newpath" "s3://${S3_BUCKET}/$newpath" --no-progress
                 fi
                 ;;
               *)
