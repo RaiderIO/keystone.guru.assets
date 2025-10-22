@@ -31,6 +31,7 @@ jobs:
         env:
           HEAD_SHA: ${{ github.sha }}
           BASE_SHA: ${{ github.event.before }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
         run: |
           set -euo pipefail
 
