@@ -2,7 +2,7 @@ name: Upload Changed Images to S3
 
 on:
   push:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
