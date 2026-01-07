@@ -1,0 +1,75 @@
+name: Upload Changed Images to S3
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  upload-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS (keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+
+      - name: Upload only changed image files
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.before }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          set -euo pipefail
+
+          # On branch creation, github.event.before can be all zeros.
+          if [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA=$(git rev-list --max-parents=0 "$HEAD_SHA" | tail -n1)
+          fi
+
+          echo "Diffing $BASE_SHA..$HEAD_SHA"
+
+          git diff --name-status "$BASE_SHA" "$HEAD_SHA" | while read -r status path newpath; do
+            case "$status" in
+              A|M)
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                  echo "PUT  $path"
+                  aws s3 cp "$path" "s3://${S3_BUCKET}/$path" --no-progress
+                fi
+                ;;
+              D)
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                  echo "DEL  $path"
+                  aws s3 rm "s3://${S3_BUCKET}/$path"
+                fi
+                ;;
+              R*)
+                # Renamed: old path in $path, new path in $newpath
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                  echo "DEL  $path"
+                  aws s3 rm "s3://${S3_BUCKET}/$path" || true
+                fi
+                if [[ "$newpath" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                  echo "PUT  $newpath"
+                  aws s3 cp "$newpath" "s3://${S3_BUCKET}/$newpath" --no-progress
+                fi
+                ;;
+              *)
+                # Ignore others (C, T, etc.)
+                :
+                ;;
+            esac
+          done
