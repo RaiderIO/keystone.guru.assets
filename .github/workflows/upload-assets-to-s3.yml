@@ -1,4 +1,4 @@
-name: Upload Changed Images to S3
+name: Upload Changed Assets to S3
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   id-token: write
 
 jobs:
-  upload-images:
+  upload-assets:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (full history for diff)
@@ -27,7 +27,7 @@ jobs:
       - name: Install AWS CLI
         uses: unfor19/install-aws-cli-action@v1
 
-      - name: Upload only changed image files
+      - name: Upload only changed asset files
         env:
           HEAD_SHA: ${{ github.sha }}
           BASE_SHA: ${{ github.event.before }}
@@ -45,24 +45,24 @@ jobs:
           git diff --name-status "$BASE_SHA" "$HEAD_SHA" | while read -r status path newpath; do
             case "$status" in
               A|M)
-                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico|otf|woff|woff2|ttf|eot)$ ]]; then
                   echo "PUT  $path"
                   aws s3 cp "$path" "s3://${S3_BUCKET}/$path" --no-progress
                 fi
                 ;;
               D)
-                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico|otf|woff|woff2|ttf|eot)$ ]]; then
                   echo "DEL  $path"
                   aws s3 rm "s3://${S3_BUCKET}/$path"
                 fi
                 ;;
               R*)
                 # Renamed: old path in $path, new path in $newpath
-                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                if [[ "$path" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico|otf|woff|woff2|ttf|eot)$ ]]; then
                   echo "DEL  $path"
                   aws s3 rm "s3://${S3_BUCKET}/$path" || true
                 fi
-                if [[ "$newpath" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico)$ ]]; then
+                if [[ "$newpath" =~ \.(png|jpg|jpeg|gif|svg|webp|avif|ico|otf|woff|woff2|ttf|eot)$ ]]; then
                   echo "PUT  $newpath"
                   aws s3 cp "$newpath" "s3://${S3_BUCKET}/$newpath" --no-progress
                 fi
